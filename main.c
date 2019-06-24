@@ -46,9 +46,32 @@ int main(int argc, char* argv[])
 	else {}
 
 	printf("connect %s:%d\n", inet_ntoa(server_in.sin_addr), server_in.sin_port);
-	send(socket_client, "relay one on", strlen("relay one on"), 0);
 	while (1)
 	{
+		send(socket_client, "relay one on", strlen("relay one on"), 0);
+		printf("relay one on\r\n");
+		Sleep(1000);
+		
+		send(socket_client, "relay one off", strlen("relay one off"), 0);
+		printf("relay one off\r\n");
+		Sleep(1000);
+		
+		send(socket_client, "relay two on", strlen("relay two on"), 0);
+		printf("relay two on\r\n");
+		Sleep(1000);
+
+		send(socket_client, "relay two off", strlen("relay two off"), 0);
+		printf("relay two off\r\n");
+		Sleep(1000);
+	
+		send(socket_client, "relay three on", strlen("relay three on"), 0);
+		printf("relay three on\r\n");
+		Sleep(1000);
+
+		send(socket_client, "relay three off", strlen("relay three off"), 0);
+		printf("relay three off\r\n");
+		Sleep(1000);
+#if 0
 		ret = recv(socket_client, recData, 255, 0);
 		/************************************************************************
 		recv函数 的实质就是从socket的缓冲区里拷贝出数据
@@ -81,6 +104,7 @@ int main(int argc, char* argv[])
 			closesocket(socket_client);
 			break;
 		}
+#endif
 	}
 
 	closesocket(socket_client);
