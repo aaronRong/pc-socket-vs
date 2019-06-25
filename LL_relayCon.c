@@ -1,17 +1,24 @@
 #include <stdio.h>
 #include <winsock2.h>
+#include <stdbool.h>
+#include <assert.h>
 #include "LL_relayCon.h"
 
 #pragma comment(lib,"ws2_32.lib")
 #pragma warning(disable:4996) 
 
 /* definition */
-#define MAX_RECV_LEN		(30UL)
+#define MAX_RECV_LEN			(30UL)
+#define MIN_ID_INDEX			(0UL)
+#define MAX_ID_INDEX			(2UL)
+#define RELAY_ONE_TIMER_ID		(0UL)
+#define RELAY_TWO_TIMER_ID		(0UL)
+#define RELAY_THREE_TIMER_ID	(0UL)
 
 /* global varaible */
 static SOCKET socketClient;
 static struct sockaddr_in serverIn;
-static relayState[3] = { LL_RELAY_OFF , LL_RELAY_OFF , LL_RELAY_OFF};
+static unsigned int relayState[3] = { LL_RELAY_OFF , LL_RELAY_OFF , LL_RELAY_OFF};
 
 const char relayTcp[6][20] = {
 	"relay one on",
@@ -31,11 +38,17 @@ const char relayTcpBack[6][20] = {
 	"relay three off done",
 };
 
+/* function declaration */
+bool setRelayStatus(int id, int status);
+void CALLBACK timerCallbackOne(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);
+void CALLBACK timerCallbackTwo(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);
+void CALLBACK timerCallbackThree(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime);
+
 /*
 * Author Name: aaron.gao
 * Time: 2019.6.25
 */
-e_LL_Status LL_configSocketComm(char* serverIp, unsigned int commPort)
+bool open(const char* serverIp, unsigned short commPort)
 {
 	WORD socket_version;
 	WSADATA wsadata;
@@ -44,7 +57,7 @@ e_LL_Status LL_configSocketComm(char* serverIp, unsigned int commPort)
 	{
 		printf("WSAStartup error!");
 		system("pause");
-		return LL_STATUS_WINSOCK_VER_ERR;
+		return false;
 	}
 
 	socketClient = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);		/* ipv4, reliable transmission */
@@ -52,7 +65,7 @@ e_LL_Status LL_configSocketComm(char* serverIp, unsigned int commPort)
 	{
 		printf("invalid socket !");
 		system("pause");
-		return LL_STATUS_SOCKET_CREATE_ERR;
+		return false;
 	}
 
 	serverIn.sin_family = AF_INET;				/* ipv4 */
@@ -62,64 +75,164 @@ e_LL_Status LL_configSocketComm(char* serverIp, unsigned int commPort)
 	{
 		printf("connect error\n");
 		system("pause");
-		return LL_STATUS_SOCKET_CONNECT_ERR;
+		return false;
 	}
 
-	return LL_STATUS_PASS;
+	return true;
 }
 
 /*
 * Author Name: aaron.gao
 * Time: 2019.6.25
 */
-e_LL_Status LL_relaySet(e_LL_Relay_NO relayNo, e_LL_Relay_State state)
+bool alarm(int id, unsigned short seconds)
 {
-	unsigned int len = 0;
-	unsigned int ret = 0;
-	unsigned char recvBuf[30];
+	bool status = false;
 
-	/* send */
-	len = send(socketClient, relayTcp[relayNo*2 + state], strlen(relayTcp[relayNo * 2 + state]), 0);
-	if (SOCKET_ERROR == len)
+	assert((id >= MIN_ID_INDEX) && (id <= MAX_ID_INDEX));
+
+	status = setRelayStatus(id, LL_RELAY_ON);
+	if (false == status)
 	{
-		return LL_STATUS_SOCKET_SEND_ERR;
+		return false;
 	}
 
-	/* recv */
-	len = recv(socketClient, recvBuf, MAX_RECV_LEN, 0);
-	if (len <= 0)
+	/* start timer */
+	switch (id)
 	{
-		return LL_STATUS_SOCKET_SERVER_ERR;
-	}
-	ret = strncmp(relayTcpBack[relayNo * 2 + state], recvBuf, len);
-	if (ret != 0)
-	{
-		return LL_STATUS_SOCKET_recv_ERR;
+	case LL_RELAY_ONE:
+		SetTimer(NULL, RELAY_ONE_TIMER_ID, seconds * 1000, timerCallbackOne);
+		break;
+	case LL_RELAY_TWO:
+		SetTimer(NULL, RELAY_TWO_TIMER_ID, seconds * 1000, timerCallbackTwo);
+		break;
+	case LL_RELAY_THREE:
+		SetTimer(NULL, RELAY_THREE_TIMER_ID, seconds * 1000, timerCallbackThree);
+		break;
 	}
 
 	/* set state */
-	relayState[relayNo] = state;
+	relayState[id] = LL_RELAY_ON;
 
-	return LL_STATUS_PASS;
+	return true;
 }
 
 /* 
 * Author Name: aaron.gao
 * Time: 2019.6.25
 */
-e_LL_Relay_State getRelayStatus(e_LL_Relay_NO relayNo)
+bool isalarm(int id)
 {
-	return relayState[relayNo];
+	if (LL_RELAY_ON == relayState[id])
+	{
+		return true;
+	}
+
+	return false;
 }
 
 /*
-*
-*
+* Author Name: aaron.gao
+* Time: 2019.6.25
 */
-e_LL_Status  closeSocket(void)
+bool stop(int id)
+{
+	bool status = false;
+
+	status = setRelayStatus(id, LL_RELAY_OFF);
+	if (true == status)
+	{
+		relayState[id] = LL_RELAY_OFF;
+	}
+	
+	return status;
+}
+
+/*
+* Author Name: aaron.gao
+* Time: 2019.6.25
+*/
+bool close(void)
 {
 	closesocket(socketClient);
 	WSACleanup();
 
-	return LL_STATUS_PASS;
+	return true;
+}
+
+/*
+* Author Name: aaron.gao
+* Time: 2019.6.25
+*/
+void CALLBACK timerCallbackOne(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
+{
+	bool status = false;
+
+	KillTimer(NULL, nTimerid);
+
+	status = setRelayStatus(LL_RELAY_ONE, LL_RELAY_OFF);
+
+	relayState[LL_RELAY_ONE] = LL_RELAY_OFF;
+}
+/*
+* Author Name: aaron.gao
+* Time: 2019.6.25
+*/
+void CALLBACK timerCallbackTwo(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
+{
+	bool status = false;
+
+	KillTimer(NULL, nTimerid);
+
+	status = setRelayStatus(LL_RELAY_ONE, LL_RELAY_OFF);
+
+	relayState[LL_RELAY_TWO] = LL_RELAY_OFF;
+}
+/*
+* Author Name: aaron.gao
+* Time: 2019.6.25
+*/
+void CALLBACK timerCallbackThree(HWND hWnd, UINT nMsg, UINT nTimerid, DWORD dwTime)
+{
+	bool status = false;
+
+	KillTimer(NULL, nTimerid);
+
+	status = setRelayStatus(LL_RELAY_ONE, LL_RELAY_OFF);
+
+	relayState[LL_RELAY_THREE] = LL_RELAY_OFF;
+}
+
+/*
+* Author Name: aaron.gao
+* Time: 2019.6.25
+*/
+bool setRelayStatus(int id, int status)
+{
+	unsigned int len = 0;
+	unsigned int ret = 0;
+	unsigned char recvBuf[30];
+
+	assert((id >= MIN_ID_INDEX) && (id <= MAX_ID_INDEX));
+	assert((status == LL_RELAY_ON) || (status == LL_RELAY_OFF));
+
+	len = send(socketClient, relayTcp[id * 2 + status], strlen(relayTcp[id * 2 + status]), 0);
+	if (SOCKET_ERROR == len)
+	{
+		return false;
+	}
+
+	/* recv */
+	len = recv(socketClient, recvBuf, MAX_RECV_LEN, 0);
+	if (len <= 0)
+	{
+		return false;
+	}
+	ret = strncmp(relayTcpBack[id * 2 + status], recvBuf, len);
+	if (ret != 0)
+	{
+		return false;
+	}
+
+	return true;
 }
