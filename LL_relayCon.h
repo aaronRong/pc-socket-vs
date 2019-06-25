@@ -36,5 +36,6 @@ typedef enum _e_LL_Relay_State
 e_LL_Status LL_configSocketComm(char* serverIp, unsigned int commPort);
 e_LL_Status LL_relaySet(e_LL_Relay_NO relayNo, e_LL_Relay_State state);
 e_LL_Relay_State getRelayStatus(e_LL_Relay_NO relayNo);
+e_LL_Status  closeSocket(void);
 
 #endif

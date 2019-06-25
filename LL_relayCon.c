@@ -120,4 +120,6 @@ e_LL_Status  closeSocket(void)
 {
 	closesocket(socketClient);
 	WSACleanup();
+
+	return LL_STATUS_PASS;
 }
