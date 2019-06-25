@@ -3,6 +3,7 @@
 #include "libLLAlarm.h"
 
 #pragma comment(lib,"ws2_32.lib")
+#pragma comment(lib, "libLLAlarm.lib")
 #pragma warning(disable:4996) 
 
 #define SERVER_IP		"192.168.0.10"
