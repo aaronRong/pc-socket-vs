@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <winsock2.h>
-#include "LL_relayCon.h"
+#include "libLLAlarm.h"
 
 #pragma comment(lib,"ws2_32.lib")
 #pragma warning(disable:4996) 
@@ -17,7 +17,7 @@ void whiteTest(e_LL_Relay_NO relayNo);
 */
 int main(int argc, char* argv[])
 {
-	bool status = false;
+	int status = RET_ERR;
 	unsigned long loop = 0;
 
 	status = open(SERVER_IP, PORT_NO);
@@ -47,12 +47,12 @@ int main(int argc, char* argv[])
 */
 void whiteTest(e_LL_Relay_NO relayNo)
 {
-	bool status;
+	int status = RET_ERR;
 
 	/* alarm */
 	printf("alarm %d...\n", relayNo);
 	status = alarm(relayNo, 3);
-	if (true != status)
+	if (RET_PASS != status)
 	{
 		printf("relay %d alarm fail, status:%d\n", relayNo, status);
 	}
@@ -60,7 +60,7 @@ void whiteTest(e_LL_Relay_NO relayNo)
 
 	/* check alarm */
 	status = isalarm(relayNo);
-	if (status == true)
+	if (RET_PASS == status)
 	{
 		printf("relay %d is alarm\n", relayNo);
 	}
@@ -77,7 +77,7 @@ void whiteTest(e_LL_Relay_NO relayNo)
 
 	/* check alarm */
 	status = isalarm(relayNo);
-	if (status == true)
+	if (RET_PASS == status)
 	{
 		printf("relay %d is alarm\n", relayNo);
 	}

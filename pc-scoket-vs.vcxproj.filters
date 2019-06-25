@@ -18,12 +18,9 @@
     <ClCompile Include="main.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="LL_relayCon.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LL_relayCon.h">
+    <ClInclude Include="libLLAlarm.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
